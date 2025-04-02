@@ -1,3 +1,4 @@
+import { MongoClient } from 'mongodb';
 import { introspectDatabase } from './lib/mongoIntrospector.js';
 import { generateMermaidDiagram } from './lib/mermaidGenerator.js';
 import { writeFile } from 'fs/promises';
@@ -8,37 +9,55 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-async function generateERD({ 
-  uri, 
-  database, 
-  output = 'erd.svg', 
-  format = 'svg', 
-  theme = 'default',
-  includeCollections,
-  excludeCollections
-}) {
+export async function generateERD(options) {
+  const {
+    uri,
+    database: databaseName,
+    outputPath,
+    format = 'svg',
+    theme = 'default',
+    includeCollections,
+    excludeCollections
+  } = options;
+
+  if (!outputPath) {
+    throw new Error('Output path is required');
+  }
+
+  let client = null;
   try {
-    // Connect and introspect database
-    const metadata = await introspectDatabase(uri, database, {
+    // Connect to MongoDB
+    client = await MongoClient.connect(uri);
+    console.log('Connected to MongoDB');
+
+    // Get database
+    const database = client.db(databaseName);
+
+    // Introspect database
+    const collectionMetadata = await introspectDatabase(database, {
       includeCollections,
       excludeCollections
     });
-    
-    // Generate diagram using mermaid
-    const outputPath = await generateMermaidDiagram(metadata, output, format, theme);
-    
-    return {
-      success: true,
-      output: outputPath,
-      metadata
-    };
+
+    // Generate diagram with the correct output path
+    await generateMermaidDiagram(collectionMetadata, {
+      outputPath,
+      format,
+      theme
+    });
+
+    return outputPath;
   } catch (error) {
-    throw new Error(`Failed to generate ERD: ${error.message}`);
+    console.error('Error:', error.message);
+    throw error;
+  } finally {
+    if (client) {
+      await client.close();
+    }
   }
 }
 
 export { 
-  generateERD,
   introspectDatabase,
   generateMermaidDiagram
 };
