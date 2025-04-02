@@ -1,44 +1,48 @@
+# Changelog
 
-## [2.1.0] - 2025-04-02
-
-### Added
-- 
-
-### Changed
-- 
-
-### Deprecated
-- 
-
-### Removed
-- 
-
-### Fixed
-- 
-
-### Security
-- 
-
-
-## [2.0.0] - 2025-04-02
+## [2.1.0] - 2024-04-02
 
 ### Added
-- 
+- Support for ASCII output format
+- Interactive database and collection selection
+- Improved relationship detection
+- Better field type analysis
 
 ### Changed
-- 
-
-### Deprecated
-- 
-
-### Removed
-- 
+- Updated command to use `mongodb-erd` instead of `mongodb-erd-cli`
+- Improved error handling and logging
+- Enhanced documentation
 
 ### Fixed
-- 
+- Fixed output path handling
+- Fixed array field handling in document structure analysis
+- Fixed test suite configuration
+
+## [2.0.0] - 2024-04-02
+
+### Added
+- Initial release
+- CLI tool for generating ERD diagrams from MongoDB databases
+- Support for multiple output formats (SVG, PNG, PDF, ASCII, Mermaid)
+- Interactive database and collection selection
+- Theme support (light/dark)
+- Relationship detection
+- Field type analysis
+
+### Changed
+- None
+
+### Deprecated
+- None
+
+### Removed
+- None
+
+### Fixed
+- None
 
 ### Security
-- 
+- None
 
 # Changelog
 
