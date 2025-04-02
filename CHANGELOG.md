@@ -1,3 +1,24 @@
+
+## [2.2.0] - 2025-04-02
+
+### Added
+- 
+
+### Changed
+- 
+
+### Deprecated
+- 
+
+### Removed
+- 
+
+### Fixed
+- 
+
+### Security
+- 
+
 # Changelog
 
 ## [2.1.0] - 2024-04-02
