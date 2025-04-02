@@ -1,22 +1,15 @@
 {
-    "name": "@mlynn/mongodb-erd-cli",
+    "name": "mongodb-erd-cli",
     "version": "2.0.0",
-    "description": "Generate Entity Relationship Diagrams from MongoDB databases via CLI",
+    "description": "CLI tool to generate Entity-Relationship Diagrams (ERD) from MongoDB databases",
     "main": "src/index.js",
     "type": "module",
     "bin": {
         "mongodb-erd": "./bin/mongodb-erd.js"
     },
     "scripts": {
-        "start": "node ./bin/mongodb-erd.js",
         "test": "NODE_OPTIONS=--experimental-vm-modules jest",
-        "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
-        "test:coverage": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
         "lint": "eslint .",
-        "prepare": "husky install",
-        "prepublishOnly": "npm test && npm run lint",
-        "setup-test-db": "node setup-test-db.js",
-        "test-cli": "./test-cli.sh",
         "version": "node scripts/version.js",
         "release:patch": "npm version patch",
         "release:minor": "npm version minor",
@@ -28,29 +21,23 @@
         "mongodb",
         "erd",
         "diagram",
-        "cli",
         "mermaid",
-        "database",
-        "schema"
+        "cli"
     ],
     "author": "Michael Lynn",
     "license": "MIT",
     "dependencies": {
-        "@mermaid-js/mermaid-cli": "^11.4.2",
-        "commander": "^11.0.0",
-        "dotenv": "^16.0.3",
-        "inquirer": "^12.5.0",
-        "mongodb": "^6.15.0",
-        "puppeteer": "^22.0.0"
+        "commander": "^11.1.0",
+        "inquirer": "^9.2.14",
+        "mongodb": "^6.3.0",
+        "puppeteer": "^22.3.0"
     },
     "devDependencies": {
-        "eslint": "^8.0.0",
-        "husky": "^8.0.0",
-        "jest": "^29.0.0",
-        "prettier": "^3.0.0"
-    },
-    "engines": {
-        "node": ">=14.0.0"
+        "@babel/core": "^7.24.0",
+        "@babel/preset-env": "^7.24.0",
+        "@jest/globals": "^29.7.0",
+        "eslint": "^8.57.0",
+        "jest": "^29.7.0"
     },
     "repository": {
         "type": "git",

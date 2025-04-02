@@ -1,29 +1,12 @@
 # MongoDB ERD CLI
 
-<div align="center">
+[![npm version](https://img.shields.io/npm/v/mongodb-erd-cli.svg?style=flat)](https://www.npmjs.com/package/mongodb-erd-cli)
+[![License](https://img.shields.io/npm/l/mongodb-erd-cli.svg?style=flat)](https://github.com/mlynn/mongodb-erd-cli/blob/main/LICENSE)
+[![Node.js Version](https://img.shields.io/node/v/mongodb-erd-cli.svg?style=flat)](https://nodejs.org)
+[![Downloads](https://img.shields.io/npm/dm/mongodb-erd-cli.svg?style=flat)](https://www.npmjs.com/package/mongodb-erd-cli)
+[![GitHub Stars](https://img.shields.io/github/stars/mlynn/mongodb-erd-cli.svg?style=flat)](https://github.com/mlynn/mongodb-erd-cli/stargazers)
 
-```ascii
-███╗   ███╗ ██████╗ ███╗   ██╗ ██████╗ ██████╗     ███████╗██████╗ ██████╗
-████╗ ████║██╔═══██╗████╗  ██║██╔═══██╗██╔══██╗    ██╔════╝██╔══██╗██╔══██╗
-██╔████╔██║██║   ██║██╔██╗ ██║██║   ██║██║  ██║    █████╗  ██████╔╝██║  ██║
-██║╚██╔╝██║██║   ██║██║╚██╗██║██║   ██║██║  ██║    ██╔══╝  ██╔══██╗██║  ██║
-██║ ╚═╝ ██║╚██████╔╝██║ ╚████║╚██████╔╝██████╔╝    ███████╗██║  ██║██████╔╝
-╚═╝     ╚═╝ ╚═════╝ ╚═╝  ╚═══╝ ╚═════╝ ╚═════╝     ╚══════╝╚═╝  ╚═╝╚═════╝
-```
-
-[![Build Status](https://github.com/mlynn/mongodb-erd-cli/workflows/CI/badge.svg)](https://github.com/mlynn/mongodb-erd-cli/actions)
-[![License](https://img.shields.io/github/license/mlynn/mongodb-erd-cli)](https://github.com/mlynn/mongodb-erd-cli/blob/main/LICENSE)
-[![Version](https://img.shields.io/github/v/release/mlynn/mongodb-erd-cli)](https://github.com/mlynn/mongodb-erd-cli/releases)
-[![Node.js Version](https://img.shields.io/node/v/mongodb-erd-cli)](https://nodejs.org)
-[![Dependencies](https://img.shields.io/david/mlynn/mongodb-erd-cli)](https://david-dm.org/mlynn/mongodb-erd-cli)
-[![Code Style](https://img.shields.io/badge/code%20style-prettier-ff69b4.svg)](https://github.com/prettier/prettier)
-[![Last Commit](https://img.shields.io/github/last-commit/mlynn/mongodb-erd-cli)](https://github.com/mlynn/mongodb-erd-cli/commits/main)
-[![Downloads](https://img.shields.io/npm/dm/mongodb-erd-cli)](https://www.npmjs.com/package/mongodb-erd-cli)
-[![Stars](https://img.shields.io/github/stars/mlynn/mongodb-erd-cli)](https://github.com/mlynn/mongodb-erd-cli/stargazers)
-
-A command-line tool that generates Entity Relationship Diagrams (ERD) from MongoDB databases using Mermaid syntax.
-
-</div>
+A command-line tool to generate Entity-Relationship Diagrams (ERD) from MongoDB databases. This tool analyzes your MongoDB collections and generates visual diagrams in various formats (SVG, PNG, PDF, ASCII, or Mermaid syntax).
 
 ## ✨ Features
 

@@ -1,26 +1,36 @@
 import { generateMermaidDiagram } from '../lib/mermaidGenerator.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 describe('mermaidGenerator', () => {
-  const mockCollectionMetadata = [
+  const testOutputPath = path.join(__dirname, 'test-output.svg');
+  const testCollections = [
     {
       name: 'users',
       fields: [
-        { name: '_id', type: 'ObjectId' },
-        { name: 'name', type: 'String' }
+        { name: 'name', type: 'string' },
+        { name: 'email', type: 'string' }
       ],
       relationships: []
     }
   ];
 
-  it('should generate SVG diagram', async () => {
-    const outputPath = await generateMermaidDiagram(
-      mockCollectionMetadata,
-      'test.svg',
-      'svg'
-    );
-    
-    // Just verify we get a path back
-    expect(typeof outputPath).toBe('string');
-    expect(outputPath).toBe('test.svg');
+  afterEach(() => {
+    if (fs.existsSync(testOutputPath)) {
+      fs.unlinkSync(testOutputPath);
+    }
+  });
+
+  it('should generate a diagram file', async () => {
+    await generateMermaidDiagram(testCollections, {
+      outputPath: testOutputPath,
+      format: 'svg',
+      theme: 'light'
+    });
+    expect(fs.existsSync(testOutputPath)).toBe(true);
   });
 }); 

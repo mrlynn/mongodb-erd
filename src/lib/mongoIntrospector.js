@@ -1,51 +1,29 @@
 import { MongoClient, ObjectId } from 'mongodb';
 
-export async function introspectDatabase(database, options = {}) {
-  const {
-    includeCollections,
-    excludeCollections
-  } = options;
-
+export async function introspectDatabase(database, includeCollections = [], excludeCollections = []) {
   try {
     // Get all collections
     const collections = await database.listCollections().toArray();
-    
+
     // Filter collections based on include/exclude options
     let filteredCollections = collections.map(col => col.name);
-    
     if (includeCollections && includeCollections.length > 0) {
-      filteredCollections = filteredCollections.filter(name => 
-        includeCollections.includes(name)
-      );
+      filteredCollections = filteredCollections.filter(col => includeCollections.includes(col));
     }
-    
     if (excludeCollections && excludeCollections.length > 0) {
-      filteredCollections = filteredCollections.filter(name => 
-        !excludeCollections.includes(name)
-      );
+      filteredCollections = filteredCollections.filter(col => !excludeCollections.includes(col));
     }
 
-    // Get metadata for each collection
+    // Analyze each collection
     const collectionMetadata = await Promise.all(
       filteredCollections.map(async (collectionName) => {
         const collection = database.collection(collectionName);
-        
-        // Get sample document to analyze structure
-        const sampleDoc = await collection.findOne();
-        
-        // Get collection stats using the correct method
-        const stats = await database.command({ collStats: collectionName });
-        
-        // Analyze document structure and relationships
-        const { fields, relationships } = sampleDoc ? analyzeDocumentStructure(sampleDoc, collectionName) : { fields: [], relationships: [] };
+        const sampleDocs = await collection.find().limit(5).toArray();
         
         return {
           name: collectionName,
-          fields,
-          relationships,
-          documentCount: stats.count || 0,
-          size: stats.size || 0,
-          avgDocumentSize: stats.avgObjSize || 0
+          fields: analyzeDocumentStructure(sampleDocs),
+          relationships: [] // Initialize empty relationships array
         };
       })
     );
