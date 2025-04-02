@@ -1,6 +1,6 @@
 {
     "name": "@mlynn/mongodb-erd-cli",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "description": "Generate Entity Relationship Diagrams from MongoDB databases via CLI",
     "main": "src/index.js",
     "type": "module",
