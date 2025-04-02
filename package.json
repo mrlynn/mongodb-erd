@@ -1,0 +1,55 @@
+{
+    "name": "mongodb-erd-cli",
+    "version": "1.0.0",
+    "description": "Generate Entity Relationship Diagrams from MongoDB databases via CLI",
+    "main": "src/index.js",
+    "type": "module",
+    "bin": {
+      "mongodb-erd": "./bin/mongodb-erd.js"
+    },
+    "scripts": {
+      "start": "node ./bin/mongodb-erd.js",
+      "test": "NODE_OPTIONS=--experimental-vm-modules jest",
+      "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --watch",
+      "test:coverage": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
+      "lint": "eslint .",
+      "prepare": "husky install",
+      "prepublishOnly": "npm test && npm run lint",
+      "setup-test-db": "node setup-test-db.js",
+      "test-cli": "./test-cli.sh"
+    },
+    "keywords": [
+      "mongodb",
+      "erd",
+      "diagram",
+      "cli",
+      "mermaid",
+      "database",
+      "schema"
+    ],
+    "author": "Michael Lynn",
+    "license": "MIT",
+    "dependencies": {
+      "commander": "^11.0.0",
+      "dotenv": "^16.0.3",
+      "mongodb": "^6.15.0",
+      "puppeteer": "^22.0.0"
+    },
+    "devDependencies": {
+      "jest": "^29.0.0",
+      "eslint": "^8.0.0",
+      "husky": "^8.0.0",
+      "prettier": "^3.0.0"
+    },
+    "engines": {
+      "node": ">=14.0.0"
+    },
+    "repository": {
+      "type": "git",
+      "url": "git+https://github.com/mlynn/mongodb-erd-cli.git"
+    },
+    "bugs": {
+      "url": "https://github.com/mlynn/mongodb-erd-cli/issues"
+    },
+    "homepage": "https://github.com/mlynn/mongodb-erd-cli#readme"
+  }
