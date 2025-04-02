@@ -9,12 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Initial release
-- Basic MongoDB connection and database analysis
-- Collection structure detection
-- Relationship inference between collections
-- Mermaid diagram generation
-- Support for SVG output format
-- Command-line interface with basic options
+- CLI tool for generating ERD diagrams from MongoDB databases
+- Support for multiple output formats (SVG, PNG, PDF, ASCII, Mermaid)
+- Interactive database and collection selection
+- Dark/light theme support
+- Relationship detection between collections
+- Field type analysis and documentation
 
 ### Changed
 - None (initial release)

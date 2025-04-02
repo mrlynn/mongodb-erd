@@ -1,5 +1,5 @@
 {
-    "name": "mongodb-erd-cli",
+    "name": "@mlynn/mongodb-erd-cli",
     "version": "1.0.0",
     "description": "Generate Entity Relationship Diagrams from MongoDB databases via CLI",
     "main": "src/index.js",
@@ -16,7 +16,13 @@
         "prepare": "husky install",
         "prepublishOnly": "npm test && npm run lint",
         "setup-test-db": "node setup-test-db.js",
-        "test-cli": "./test-cli.sh"
+        "test-cli": "./test-cli.sh",
+        "version": "node scripts/version.js",
+        "release:patch": "npm version patch",
+        "release:minor": "npm version minor",
+        "release:major": "npm version major",
+        "release:beta": "npm version prerelease --preid=beta",
+        "release:alpha": "npm version prerelease --preid=alpha"
     },
     "keywords": [
         "mongodb",
