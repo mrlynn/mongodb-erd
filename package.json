@@ -1,6 +1,6 @@
 {
-    "name": "mongodb-erd-cli",
-    "version": "2.3.0",
+    "name": "@mlynn/mongodb-erd-cli",
+    "version": "2.4.0",
     "description": "CLI tool to generate Entity-Relationship Diagrams (ERD) from MongoDB databases",
     "main": "src/index.js",
     "type": "module",
@@ -10,6 +10,7 @@
     "scripts": {
         "test": "NODE_OPTIONS=--experimental-vm-modules jest",
         "lint": "eslint .",
+        "setup-test-db": "node scripts/setup-test-db.js",
         "version": "node scripts/version.js",
         "release:patch": "npm version patch",
         "release:minor": "npm version minor",

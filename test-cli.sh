@@ -28,7 +28,10 @@ test_cases=(
   "Basic SVG output"
   "PNG output with dark theme"
   "Collection filtering"
-  "Error handling"
+  "ASCII output"
+  "Mermaid syntax output"
+  "Error handling - invalid URI"
+  "Error handling - invalid database"
 )
 
 # Function to run test
@@ -36,18 +39,30 @@ run_test() {
   local test_name=$1
   local command=$2
   local expected_exit=$3
+  local expected_output=$4
 
   echo -e "\n${GREEN}Running test: $test_name${NC}"
   echo "Command: $command"
   
-  eval $command
+  # Capture both stdout and stderr
+  output=$(eval $command 2>&1)
   local exit_code=$?
   
   if [ $exit_code -eq ${expected_exit:-0} ]; then
+    if [ -n "$expected_output" ] && ! echo "$output" | grep -q "$expected_output"; then
+      echo -e "${RED}✗ Test failed - output mismatch${NC}"
+      echo -e "${RED}Expected output:${NC}"
+      echo "$expected_output"
+      echo -e "${RED}Actual output:${NC}"
+      echo "$output"
+      return 1
+    fi
     echo -e "${GREEN}✓ Test passed${NC}"
     return 0
   else
     echo -e "${RED}✗ Test failed${NC}"
+    echo -e "${RED}Output:${NC}"
+    echo "$output"
     return 1
   fi
 }
@@ -70,10 +85,36 @@ run_test "${test_cases[2]}" \
   "mongodb-erd --uri 'mongodb://localhost:27017' --database 'test_db' --output '$TEST_DIR/filtered.svg' --include 'users,posts'" \
   0 || ((failed_tests++))
 
-# Test 4: Error handling (invalid URI)
+# Test 4: ASCII output
 run_test "${test_cases[3]}" \
+  "mongodb-erd --uri 'mongodb://localhost:27017' --database 'test_db' --output '$TEST_DIR/ascii.txt' --format ascii" \
+  0 || ((failed_tests++))
+
+# Test 5: Mermaid syntax output
+run_test "${test_cases[4]}" \
+  "mongodb-erd --uri 'mongodb://localhost:27017' --database 'test_db' --output '$TEST_DIR/mermaid.mmd' --format mermaid" \
+  0 || ((failed_tests++))
+
+# Test 6: Error handling (invalid URI)
+run_test "${test_cases[5]}" \
   "mongodb-erd --uri 'invalid-uri' --database 'test_db' --output '$TEST_DIR/error.svg'" \
-  1 || ((failed_tests++))
+  1 "Error: MongoDB URI is required" || ((failed_tests++))
+
+# Test 7: Error handling (invalid database)
+run_test "${test_cases[6]}" \
+  "mongodb-erd --uri 'mongodb://localhost:27017' --database 'nonexistent_db' --output '$TEST_DIR/error2.svg'" \
+  1 "Error: Database 'nonexistent_db' does not exist" || ((failed_tests++))
+
+# Verify output files
+echo -e "\n${GREEN}Verifying output files:${NC}"
+for file in "$TEST_DIR"/*; do
+  if [ -f "$file" ]; then
+    echo -e "${GREEN}✓ $file${NC}"
+  else
+    echo -e "${RED}✗ Missing file: $file${NC}"
+    ((failed_tests++))
+  fi
+done
 
 echo -e "\n${GREEN}Test Summary:${NC}"
 echo "Output files are in the '$TEST_DIR' directory"

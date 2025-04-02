@@ -1,141 +1,156 @@
-import { MongoClient, ObjectId } from 'mongodb';
+import { MongoClient } from 'mongodb';
 
-export async function introspectDatabase(database, includeCollections = [], excludeCollections = []) {
+export async function listDatabases(uri) {
+  const client = await MongoClient.connect(uri);
   try {
-    // Get all collections
-    const collections = await database.listCollections().toArray();
+    const adminDb = client.db('admin');
+    const dbs = await adminDb.admin().listDatabases();
+    return dbs.databases.map(db => db.name);
+  } finally {
+    await client.close();
+  }
+}
 
-    // Filter collections based on include/exclude options
-    let filteredCollections = collections.map(col => col.name);
-    if (includeCollections && includeCollections.length > 0) {
-      filteredCollections = filteredCollections.filter(col => includeCollections.includes(col));
-    }
-    if (excludeCollections && excludeCollections.length > 0) {
-      filteredCollections = filteredCollections.filter(col => !excludeCollections.includes(col));
+export async function listCollections(uri, database) {
+  const client = await MongoClient.connect(uri);
+  try {
+    const db = client.db(database);
+    const collections = await db.listCollections().toArray();
+    return collections.map(c => c.name);
+  } finally {
+    await client.close();
+  }
+}
+
+export async function analyzeDatabase(uri, database, collections = []) {
+  const client = await MongoClient.connect(uri);
+  try {
+    const db = client.db(database);
+    
+    // If no collections specified, get all collections
+    if (collections.length === 0) {
+      const allCollections = await db.listCollections().toArray();
+      collections = allCollections.map(c => c.name);
     }
 
-    // Analyze each collection
-    const collectionMetadata = await Promise.all(
-      filteredCollections.map(async (collectionName) => {
-        const collection = database.collection(collectionName);
-        const sampleDocs = await collection.find().limit(5).toArray();
-        
-        return {
+    const analyzedCollections = [];
+    const relationships = [];
+
+    for (const collectionName of collections) {
+      const collection = db.collection(collectionName);
+      const sampleDocs = await collection.find().limit(10).toArray();
+      
+      if (sampleDocs.length === 0) {
+        analyzedCollections.push({
           name: collectionName,
-          fields: analyzeDocumentStructure(sampleDocs),
-          relationships: [] // Initialize empty relationships array
-        };
-      })
-    );
-
-    return collectionMetadata;
-  } catch (error) {
-    console.error('Error introspecting database:', error);
-    throw error;
-  }
-}
-
-function analyzeDocumentStructure(doc, collectionName, processedDocs = new Set()) {
-  if (!doc || typeof doc !== 'object') {
-    return {
-      fields: [],
-      relationships: []
-    };
-  }
-
-  // Prevent infinite recursion
-  const docId = doc._id?.toString();
-  if (docId && processedDocs.has(docId)) {
-    return {
-      fields: [],
-      relationships: []
-    };
-  }
-  if (docId) {
-    processedDocs.add(docId);
-  }
-
-  const fields = new Map();
-  const relationships = new Set();
-
-  // Process each field in the document
-  for (const [key, value] of Object.entries(doc)) {
-    if (key === '_id') continue;
-
-    const fieldType = determineFieldType(value);
-    fields.set(key, { name: key, type: fieldType });
-
-    // Check for relationships
-    if (fieldType === 'ObjectId') {
-      const referencedCollection = determineReferencedCollection(key);
-      if (referencedCollection) {
-        relationships.add({
-          from: collectionName,
-          to: referencedCollection,
-          field: key
+          fields: []
         });
+        continue;
       }
-    } else if (fieldType === 'Array' && value.length > 0) {
-      // Handle array fields
-      if (typeof value[0] === 'object' && value[0] !== null) {
-        // If array contains objects, analyze the first item
-        const arrayItemStructure = analyzeDocumentStructure(value[0], collectionName, processedDocs);
-        arrayItemStructure.fields.forEach((field, fieldKey) => {
-          if (!fields.has(fieldKey)) {
-            fields.set(fieldKey, field);
-          }
-        });
-        arrayItemStructure.relationships.forEach(rel => relationships.add(rel));
+
+      const fields = [];
+      const fieldTypes = new Map();
+
+      // Analyze each document to build field types
+      for (const doc of sampleDocs) {
+        analyzeDocumentStructure(doc, '', fields, fieldTypes);
       }
-      // Keep the array type for the field itself
-      fields.set(key, { name: key, type: 'Array' });
-    } else if (fieldType === 'Object' && value !== null) {
-      // Handle nested objects
-      const nestedStructure = analyzeDocumentStructure(value, collectionName, processedDocs);
-      nestedStructure.fields.forEach((field, fieldKey) => {
-        if (!fields.has(fieldKey)) {
-          fields.set(fieldKey, field);
-        }
+
+      // Convert field types map to array
+      const analyzedFields = Array.from(fieldTypes.entries()).map(([name, type]) => ({
+        name,
+        type,
+        isArray: type.startsWith('Array<'),
+        isObject: type.startsWith('Object<'),
+        isReference: type === 'ObjectId'
+      }));
+
+      analyzedCollections.push({
+        name: collectionName,
+        fields: analyzedFields
       });
-      nestedStructure.relationships.forEach(rel => relationships.add(rel));
+
+      // Find relationships
+      for (const field of analyzedFields) {
+        if (field.type === 'ObjectId') {
+          // Try to determine the referenced collection
+          const referencedCollection = await findReferencedCollection(db, field.name, sampleDocs);
+          if (referencedCollection) {
+            relationships.push({
+              from: collectionName,
+              to: referencedCollection,
+              field: field.name,
+              type: 'one-to-many'
+            });
+          }
+        }
+      }
     }
-  }
 
-  return {
-    fields: Array.from(fields.values()),
-    relationships: Array.from(relationships)
-  };
+    return {
+      collections: analyzedCollections,
+      relationships
+    };
+  } finally {
+    await client.close();
+  }
 }
 
-function determineFieldType(value) {
-  if (value === null) return 'Null';
-  if (Array.isArray(value)) return 'Array';
-  if (typeof value === 'object') {
-    if (value instanceof Date) return 'Date';
-    if (value instanceof ObjectId) return 'ObjectId';
-    if (value.$oid) return 'ObjectId';
-    if (value.$date) return 'Date';
-    return 'Object';
+function analyzeDocumentStructure(doc, prefix, fields, fieldTypes) {
+  for (const [key, value] of Object.entries(doc)) {
+    const fieldName = prefix ? `${prefix}.${key}` : key;
+    
+    if (value === null) {
+      fieldTypes.set(fieldName, 'null');
+      continue;
+    }
+
+    if (Array.isArray(value)) {
+      if (value.length === 0) {
+        fieldTypes.set(fieldName, 'Array<unknown>');
+      } else {
+        const itemType = typeof value[0];
+        if (itemType === 'object' && value[0] !== null) {
+          fieldTypes.set(fieldName, `Array<Object<${Object.keys(value[0]).join(',')}>>`);
+          analyzeDocumentStructure(value[0], fieldName, fields, fieldTypes);
+        } else {
+          fieldTypes.set(fieldName, `Array<${itemType}>`);
+        }
+      }
+      continue;
+    }
+
+    if (typeof value === 'object') {
+      fieldTypes.set(fieldName, `Object<${Object.keys(value).join(',')}>`);
+      analyzeDocumentStructure(value, fieldName, fields, fieldTypes);
+      continue;
+    }
+
+    fieldTypes.set(fieldName, typeof value);
   }
-  return typeof value;
 }
 
-function determineReferencedCollection(fieldName) {
-  // Common patterns for referenced collections
-  const patterns = [
-    /^(\w+)_id$/i,           // user_id, post_id, etc.
-    /^(\w+)Id$/i,           // userId, postId, etc.
-    /^(\w+)Ref$/i,          // userRef, postRef, etc.
-    /^(\w+)Reference$/i,    // userReference, postReference, etc.
-    /^(\w+)$/i              // user, post, etc.
-  ];
+async function findReferencedCollection(db, fieldName, sampleDocs) {
+  // Get all collection names
+  const collections = await db.listCollections().toArray();
+  const collectionNames = collections.map(c => c.name);
 
-  for (const pattern of patterns) {
-    const match = fieldName.match(pattern);
-    if (match) {
-      const collectionName = match[1].toLowerCase();
-      // Add common plural forms
-      return collectionName.endsWith('s') ? collectionName : `${collectionName}s`;
+  // Check each document for the field
+  for (const doc of sampleDocs) {
+    const fieldValue = doc[fieldName];
+    if (!fieldValue) continue;
+
+    // If it's an array of ObjectIds, check the first one
+    const valueToCheck = Array.isArray(fieldValue) ? fieldValue[0] : fieldValue;
+    if (!valueToCheck) continue;
+
+    // Try to find a document in any collection that has this _id
+    for (const collectionName of collectionNames) {
+      const collection = db.collection(collectionName);
+      const referencedDoc = await collection.findOne({ _id: valueToCheck });
+      if (referencedDoc) {
+        return collectionName;
+      }
     }
   }
 

@@ -1,0 +1,19 @@
+[posts]
+  _id: number
+  title: string
+  content: string
+  author_id: number
+  created_at: Object<>
+
+[comments]
+  _id: number
+  content: string
+  post_id: number
+  user_id: number
+  created_at: Object<>
+
+[users]
+  _id: number
+  name: string
+  email: string
+

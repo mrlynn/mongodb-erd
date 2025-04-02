@@ -50,7 +50,7 @@ export async function generateMermaidDiagram(collectionMetadata, options = {}) {
         <title>MongoDB ERD</title>
         <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
         <style>
-          body { margin: 0; padding: 20px; }
+          body { margin: 0; padding: 20px; background: white; }
           .mermaid { width: 100%; height: 100%; }
         </style>
       </head>
@@ -99,176 +99,92 @@ export async function generateMermaidDiagram(collectionMetadata, options = {}) {
     });
 
     // Load the HTML file
-    await page.goto(`file:${htmlPath}`, {
-      waitUntil: 'networkidle0'
-    });
+    await page.goto(`file://${htmlPath}`, { waitUntil: 'networkidle0' });
 
     // Wait for the diagram to be rendered
     await page.waitForSelector('.mermaid svg');
 
-    // Get the SVG element
-    const svgElement = await page.$('.mermaid svg');
-    if (!svgElement) {
-      throw new Error('SVG element not found');
-    }
+    if (format.toLowerCase() === 'png') {
+      // For PNG output, take a screenshot of the SVG
+      const element = await page.$('.mermaid svg');
+      await element.screenshot({
+        path: outputPath,
+        type: 'png',
+        omitBackground: true
+      });
+    } else {
+      // For SVG output, get the SVG content
+      const svg = await page.evaluate(() => {
+        const svgElement = document.querySelector('.mermaid svg');
+        return svgElement.outerHTML;
+      });
 
-    // Generate output based on format
-    switch (format.toLowerCase()) {
-      case 'svg':
-        await fs.promises.writeFile(outputPath, await page.evaluate(el => el.outerHTML, svgElement));
-        break;
-      case 'png':
-        await page.screenshot({
-          path: outputPath,
-          type: 'png',
-          fullPage: true,
-          omitBackground: true
-        });
-        break;
-      case 'pdf':
-        await page.pdf({
-          path: outputPath,
-          format: 'A4',
-          printBackground: true,
-          margin: {
-            top: '20px',
-            right: '20px',
-            bottom: '20px',
-            left: '20px'
-          }
-        });
-        break;
-      default:
-        throw new Error(`Unsupported format: ${format}`);
+      // Write the SVG to the output file
+      await fs.promises.writeFile(outputPath, svg);
     }
 
     await browser.close();
-  } finally {
+
     // Clean up temporary files
     await fs.promises.rm(tempDir, { recursive: true, force: true });
+
+    return outputPath;
+  } catch (error) {
+    console.error('Error generating diagram:', error);
+    throw error;
   }
 }
 
-function generateAsciiDiagram(collectionMetadata) {
-  let output = 'MongoDB ERD Diagram\n';
-  output += '==================\n\n';
+function generateAsciiDiagram(collections) {
+  let output = '';
 
-  // Calculate the maximum width needed for collection boxes
-  const maxCollectionWidth = Math.max(
-    ...collectionMetadata.map(c => c.name.length + 2)
-  );
-
-  // Draw collections and their relationships
-  collectionMetadata.forEach((collection, index) => {
-    // Draw collection box
-    const boxWidth = maxCollectionWidth + 4;
-    const boxHeight = 3;
-    const boxTop = index * (boxHeight + 2);
-    
-    // Draw top of box
-    output += ' ' + '─'.repeat(boxWidth) + '\n';
-    // Draw collection name
-    output += '│ ' + collection.name.padEnd(boxWidth - 2) + ' │\n';
-    // Draw bottom of box
-    output += ' ' + '─'.repeat(boxWidth) + '\n';
-
-    // Draw fields
-    collection.fields.forEach((field, fieldIndex) => {
-      const fieldLine = `  ├─ ${field.name}: ${field.type}`;
-      output += fieldLine + '\n';
+  // Add collections
+  collections.forEach(collection => {
+    output += `[${collection.name}]\n`;
+    collection.fields.forEach(field => {
+      output += `  ${field.name}: ${field.type}\n`;
     });
-
-    // Draw relationships
-    if (collection.relationships.length > 0) {
-      output += '\n  Relationships:\n';
-      collection.relationships.forEach(rel => {
-        const targetIndex = collectionMetadata.findIndex(c => c.name === rel.to);
-        if (targetIndex !== -1) {
-          const targetBoxTop = targetIndex * (boxHeight + 2);
-          const currentBoxTop = index * (boxHeight + 2);
-          
-          // Draw connection line
-          if (targetIndex > index) {
-            // Draw downward connection
-            output += '  │\n';
-            output += '  │\n';
-            output += '  ▼\n';
-          } else if (targetIndex < index) {
-            // Draw upward connection
-            output += '  ▲\n';
-            output += '  │\n';
-            output += '  │\n';
-          }
-          
-          // Draw relationship label
-          output += `  ${rel.field} → ${rel.to}\n`;
-        }
-      });
-    }
-
     output += '\n';
   });
-
-  // Add legend
-  output += '\nLegend:\n';
-  output += '──────\n';
-  output += '  │   Collection\n';
-  output += '  ├─  Field\n';
-  output += '  →   Relationship\n';
-  output += '  ▲   References above\n';
-  output += '  ▼   References below\n';
 
   return output;
 }
 
-function generateMermaidSyntax(collectionMetadata, theme = 'default') {
-  // Sanitize field names and types for Mermaid syntax
-  function sanitizeFieldName(name) {
-    return name.replace(/[^a-zA-Z0-9_]/g, '_');
-  }
-
-  function sanitizeFieldType(type) {
-    return type.replace(/[^a-zA-Z0-9_]/g, '_');
-  }
-
+function generateMermaidSyntax(collections, theme = 'default') {
   let syntax = 'erDiagram\n';
-  
-  // Add theme configuration
-  if (theme === 'dark') {
-    syntax += `%%{init: {'theme': 'dark'}}%%\n`;
-  }
 
   // Add collections
-  collectionMetadata.forEach(collection => {
-    const collectionName = sanitizeFieldName(collection.name);
-    syntax += `    ${collectionName} {\n`;
-    
-    // Add fields
+  collections.forEach(collection => {
+    syntax += `    ${collection.name} {\n`;
     collection.fields.forEach(field => {
-      const fieldName = sanitizeFieldName(field.name);
-      const fieldType = sanitizeFieldType(field.type);
+      // Format field type for Mermaid ERD
+      const fieldType = formatFieldType(field);
+      // Escape special characters in field name
+      const fieldName = field.name.replace(/[^a-zA-Z0-9_]/g, '_');
       syntax += `        ${fieldType} ${fieldName}\n`;
     });
-    
     syntax += '    }\n\n';
-  });
-
-  // Add relationships
-  collectionMetadata.forEach(collection => {
-    collection.relationships.forEach(rel => {
-      const fromCollection = sanitizeFieldName(rel.from);
-      const toCollection = sanitizeFieldName(rel.to);
-      const fieldName = sanitizeFieldName(rel.field);
-      syntax += `    ${fromCollection} ||--o{ ${toCollection} : "${fieldName}"\n`;
-    });
   });
 
   return syntax;
 }
 
 function formatFieldType(field) {
-  if (field.type === 'ObjectId') {
-    return 'ObjectId';
-  }
-  return field.type;
+  // Map MongoDB types to Mermaid ERD types
+  const typeMap = {
+    'string': 'STRING',
+    'number': 'NUMBER',
+    'boolean': 'BOOLEAN',
+    'date': 'DATE',
+    'ObjectId': 'STRING',
+    'Array': 'ARRAY',
+    'Object': 'OBJECT',
+    'null': 'NULL'
+  };
+
+  // Get base type (remove Array<> or Object<> wrapper)
+  const baseType = field.type.replace(/^(Array|Object)<(.+)>$/, '$2');
+  
+  // Map to Mermaid type or default to STRING
+  return typeMap[baseType] || 'STRING';
 }

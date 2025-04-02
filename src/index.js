@@ -1,5 +1,5 @@
 import { MongoClient } from 'mongodb';
-import { introspectDatabase } from './lib/mongoIntrospector.js';
+import { analyzeDatabase } from './lib/mongoIntrospector.js';
 import { generateMermaidDiagram } from './lib/mermaidGenerator.js';
 import { writeFile } from 'fs/promises';
 import { execSync } from 'child_process';
@@ -24,6 +24,10 @@ export async function generateERD(options) {
     throw new Error('MongoDB URI is required');
   }
 
+  if (!uri.startsWith('mongodb://') && !uri.startsWith('mongodb+srv://')) {
+    throw new Error('MongoDB URI is required');
+  }
+
   if (!database) {
     throw new Error('Database name is required');
   }
@@ -37,28 +41,40 @@ export async function generateERD(options) {
   const finalOutputPath = outputPath || defaultOutputPath;
 
   try {
-    // Connect to MongoDB
+    // Check if database exists
     const client = await MongoClient.connect(uri);
-    const db = client.db(database);
+    try {
+      const dbs = await client.db().admin().listDatabases();
+      const dbExists = dbs.databases.some(db => db.name === database);
+      if (!dbExists) {
+        throw new Error(`Database '${database}' does not exist`);
+      }
+    } finally {
+      await client.close();
+    }
 
-    // Introspect the database
-    const collectionMetadata = await introspectDatabase(db, collections, excludeCollections);
+    // Analyze the database
+    const { collections: analyzedCollections } = await analyzeDatabase(uri, database, collections);
 
     // Generate the diagram
-    const outputPath = await generateMermaidDiagram(collectionMetadata, {
+    const outputPath = await generateMermaidDiagram(analyzedCollections, {
       outputPath: finalOutputPath,
       format,
       theme
     });
 
-    await client.close();
     return outputPath;
   } catch (error) {
+    // If it's already a database existence error, throw it directly
+    if (error.message.includes("Database '") && error.message.includes("' does not exist")) {
+      throw error;
+    }
+    // Otherwise wrap it in the ERD error message
     throw new Error(`Error generating ERD: ${error.message}`);
   }
 }
 
 export { 
-  introspectDatabase,
+  analyzeDatabase,
   generateMermaidDiagram
 };
