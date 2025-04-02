@@ -20,16 +20,22 @@ export async function generateERD(options) {
     excludeCollections = []
   } = options;
 
-  if (!uri) {
-    throw new Error('MongoDB URI is required');
+  // Check for URI in options or environment
+  const finalUri = uri || process.env.MONGODB_URI;
+  
+  if (!finalUri) {
+    throw new Error('MongoDB URI is required (use options.uri or MONGODB_URI environment variable)');
   }
 
-  if (!uri.startsWith('mongodb://') && !uri.startsWith('mongodb+srv://')) {
-    throw new Error('MongoDB URI is required');
+  if (!finalUri.startsWith('mongodb://') && !finalUri.startsWith('mongodb+srv://')) {
+    throw new Error('MongoDB URI format is invalid');
   }
 
-  if (!database) {
-    throw new Error('Database name is required');
+  // Check for database in options or environment
+  const finalDatabase = database || process.env.MONGODB_DATABASE;
+  
+  if (!finalDatabase) {
+    throw new Error('Database name is required (use options.database or MONGODB_DATABASE environment variable)');
   }
 
   // Generate default output path if not provided
@@ -42,19 +48,19 @@ export async function generateERD(options) {
 
   try {
     // Check if database exists
-    const client = await MongoClient.connect(uri);
+    const client = await MongoClient.connect(finalUri);
     try {
       const dbs = await client.db().admin().listDatabases();
-      const dbExists = dbs.databases.some(db => db.name === database);
+      const dbExists = dbs.databases.some(db => db.name === finalDatabase);
       if (!dbExists) {
-        throw new Error(`Database '${database}' does not exist`);
+        throw new Error(`Database '${finalDatabase}' does not exist`);
       }
     } finally {
       await client.close();
     }
 
     // Analyze the database
-    const { collections: analyzedCollections } = await analyzeDatabase(uri, database, collections);
+    const { collections: analyzedCollections } = await analyzeDatabase(finalUri, finalDatabase, collections);
 
     // Generate the diagram
     const outputPath = await generateMermaidDiagram(analyzedCollections, {

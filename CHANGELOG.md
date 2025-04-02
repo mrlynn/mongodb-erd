@@ -1,4 +1,20 @@
 
+## [2.5.1] - 2025-04-02
+
+### Added
+- Support for using environment variables `MONGODB_URI` and `MONGODB_DATABASE` instead of CLI arguments
+- Updated documentation for environment variable support
+
+### Changed
+- Refactored code to check for environment variables consistently
+- Improved error messages with more helpful instructions
+- Updated option validation to accept environment variables
+
+### Fixed
+- Version number in CLI help text
+- Error message format for URI validation
+
+
 ## [2.5.0] - 2025-04-02
 
 ### Added

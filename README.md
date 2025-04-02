@@ -16,6 +16,7 @@ A command-line tool to generate Entity-Relationship Diagrams (ERD) from MongoDB 
 - 🎨 Support for multiple output formats (SVG, PNG, PDF)
 - 🎯 Customizable theme and styling
 - 🔄 Collection filtering options
+- 🔄 Environment variable support for sensitive data
 
 ## 🚀 Installation
 
@@ -45,13 +46,37 @@ mongodb-erd \
 
 | Option | Description | Required | Default |
 |--------|-------------|----------|---------|
-| `--uri` | MongoDB connection URI | Yes | - |
-| `--database` | Database name | Yes | - |
-| `--output` | Output file path | Yes | - |
-| `--format` | Output format (svg, png, pdf) | No | "svg" |
-| `--theme` | Diagram theme (default, dark) | No | "default" |
+| `--uri` | MongoDB connection URI | Yes* | - |
+| `--database` | Database name | Yes* | - |
+| `--output` | Output file path | No | Auto-generated |
+| `--format` | Output format (svg, png, pdf, ascii, mermaid) | No | "svg" |
+| `--theme` | Diagram theme (light, dark) | No | "light" |
+
+> *Can be set via environment variables instead (see below).
 | `--include` | Comma-separated list of collections to include | No | - |
 | `--exclude` | Comma-separated list of collections to exclude | No | - |
+
+### Environment Variables
+
+You can use environment variables instead of command line arguments for sensitive data:
+
+```bash
+# Set environment variables
+export MONGODB_URI="mongodb://localhost:27017"
+export MONGODB_DATABASE="my_database"
+
+# Run the tool
+mongodb-erd
+```
+
+Or create a `.env` file in your project:
+
+```env
+MONGODB_URI=mongodb://localhost:27017
+MONGODB_DATABASE=my_database
+```
+
+The tool will check for environment variables before using command line arguments.
 
 ## 🛠️ Development
 
