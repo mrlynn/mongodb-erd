@@ -1,10 +1,10 @@
 # MongoDB ERD CLI
 
-[![npm version](https://img.shields.io/npm/v/mongodb-erd-cli.svg?style=flat)](https://www.npmjs.com/package/mongodb-erd-cli)
-[![License](https://img.shields.io/npm/l/mongodb-erd-cli.svg?style=flat)](https://github.com/mlynn/mongodb-erd-cli/blob/main/LICENSE)
-[![Node.js Version](https://img.shields.io/node/v/mongodb-erd-cli.svg?style=flat)](https://nodejs.org)
-[![Downloads](https://img.shields.io/npm/dm/mongodb-erd-cli.svg?style=flat)](https://www.npmjs.com/package/mongodb-erd-cli)
-[![GitHub Stars](https://img.shields.io/github/stars/mrlynn/mongodb-erd.svg?style=flat)](https://github.com/mrlynn/mongodb-erd/stargazers)
+[![npm version](https://img.shields.io/npm/v/mongodb-erd-cli.svg)](https://www.npmjs.com/package/mongodb-erd-cli)
+[![License](https://img.shields.io/npm/l/mongodb-erd-cli.svg)](https://github.com/mrlynn/mongodb-erd/blob/main/LICENSE)
+[![Node](https://img.shields.io/node/v/mongodb-erd-cli.svg)](https://www.npmjs.com/package/mongodb-erd-cli)
+[![Downloads](https://img.shields.io/npm/dm/mongodb-erd-cli.svg)](https://www.npmjs.com/package/mongodb-erd-cli)
+[![GitHub stars](https://img.shields.io/github/stars/mrlynn/mongodb-erd.svg)](https://github.com/mrlynn/mongodb-erd)
 
 A command-line tool to generate Entity-Relationship Diagrams (ERD) from MongoDB databases. This tool analyzes your MongoDB collections and generates visual diagrams in various formats (SVG, PNG, PDF, ASCII, or Mermaid syntax).
 

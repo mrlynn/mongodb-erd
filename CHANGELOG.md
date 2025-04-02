@@ -1,4 +1,25 @@
 
+## [2.5.2] - 2025-04-02
+
+### Added
+- 
+
+### Changed
+- 
+
+### Deprecated
+- 
+
+### Removed
+- 
+
+### Fixed
+- 
+
+### Security
+- 
+
+
 ## [2.5.1] - 2025-04-02
 
 ### Added
