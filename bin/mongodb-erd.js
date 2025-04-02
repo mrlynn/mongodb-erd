@@ -18,7 +18,7 @@ const __dirname = dirname(__filename);
 program
   .name('mongodb-erd')
   .description('Generate Entity Relationship Diagrams from MongoDB databases')
-  .version('2.5.1')
+  .version('2.5.2')
   .option('-u, --uri <uri>', 'MongoDB connection URI')
   .option('-d, --database <database>', 'Database name')
   .option('-i, --include <collections...>', 'Collections to include')
