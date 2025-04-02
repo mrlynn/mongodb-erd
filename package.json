@@ -1,6 +1,6 @@
 {
     "name": "mongodb-erd-cli",
-    "version": "2.1.0",
+    "version": "2.2.0",
     "description": "CLI tool to generate Entity-Relationship Diagrams (ERD) from MongoDB databases",
     "main": "src/index.js",
     "type": "module",
