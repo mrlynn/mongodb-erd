@@ -57,89 +57,107 @@ export async function introspectDatabase(database, options = {}) {
   }
 }
 
-function analyzeDocumentStructure(doc, collectionName, prefix = '') {
-  const fields = [];
-  const relationships = [];
-  
+function analyzeDocumentStructure(doc, collectionName, processedDocs = new Set()) {
+  if (!doc || typeof doc !== 'object') {
+    return {
+      fields: [],
+      relationships: []
+    };
+  }
+
+  // Prevent infinite recursion
+  const docId = doc._id?.toString();
+  if (docId && processedDocs.has(docId)) {
+    return {
+      fields: [],
+      relationships: []
+    };
+  }
+  if (docId) {
+    processedDocs.add(docId);
+  }
+
+  const fields = new Map();
+  const relationships = new Set();
+
+  // Process each field in the document
   for (const [key, value] of Object.entries(doc)) {
-    const fieldName = prefix ? `${prefix}.${key}` : key;
-    const fieldType = typeof value;
-    
-    if (value === null) {
-      fields.push({
-        name: fieldName,
-        type: 'null',
-        required: false
-      });
-    } else if (Array.isArray(value)) {
-      const arrayAnalysis = analyzeDocumentStructure(value[0], collectionName, fieldName);
-      fields.push({
-        name: fieldName,
-        type: 'array',
-        required: false,
-        items: arrayAnalysis.fields
-      });
-      relationships.push(...arrayAnalysis.relationships);
-    } else if (value instanceof ObjectId) {
-      fields.push({
-        name: fieldName,
-        type: 'ObjectId',
-        required: false
-      });
-      // Try to determine the referenced collection from the field name
-      const referencedCollection = determineReferencedCollection(fieldName);
+    if (key === '_id') continue;
+
+    const fieldType = determineFieldType(value);
+    fields.set(key, { name: key, type: fieldType });
+
+    // Check for relationships
+    if (fieldType === 'ObjectId') {
+      const referencedCollection = determineReferencedCollection(key);
       if (referencedCollection) {
-        relationships.push({
+        relationships.add({
           from: collectionName,
           to: referencedCollection,
-          field: fieldName,
-          type: 'reference'
+          field: key
         });
       }
-    } else if (typeof value === 'object') {
-      const objectAnalysis = analyzeDocumentStructure(value, collectionName, fieldName);
-      fields.push({
-        name: fieldName,
-        type: 'object',
-        required: false,
-        fields: objectAnalysis.fields
+    } else if (fieldType === 'Array' && value.length > 0) {
+      // Handle array fields
+      if (typeof value[0] === 'object' && value[0] !== null) {
+        // If array contains objects, analyze the first item
+        const arrayItemStructure = analyzeDocumentStructure(value[0], collectionName, processedDocs);
+        arrayItemStructure.fields.forEach((field, fieldKey) => {
+          if (!fields.has(fieldKey)) {
+            fields.set(fieldKey, field);
+          }
+        });
+        arrayItemStructure.relationships.forEach(rel => relationships.add(rel));
+      }
+      // Keep the array type for the field itself
+      fields.set(key, { name: key, type: 'Array' });
+    } else if (fieldType === 'Object' && value !== null) {
+      // Handle nested objects
+      const nestedStructure = analyzeDocumentStructure(value, collectionName, processedDocs);
+      nestedStructure.fields.forEach((field, fieldKey) => {
+        if (!fields.has(fieldKey)) {
+          fields.set(fieldKey, field);
+        }
       });
-      relationships.push(...objectAnalysis.relationships);
-    } else {
-      fields.push({
-        name: fieldName,
-        type: fieldType,
-        required: false
-      });
+      nestedStructure.relationships.forEach(rel => relationships.add(rel));
     }
   }
-  
-  return { fields, relationships };
+
+  return {
+    fields: Array.from(fields.values()),
+    relationships: Array.from(relationships)
+  };
+}
+
+function determineFieldType(value) {
+  if (value === null) return 'Null';
+  if (Array.isArray(value)) return 'Array';
+  if (typeof value === 'object') {
+    if (value instanceof Date) return 'Date';
+    if (value instanceof ObjectId) return 'ObjectId';
+    if (value.$oid) return 'ObjectId';
+    if (value.$date) return 'Date';
+    return 'Object';
+  }
+  return typeof value;
 }
 
 function determineReferencedCollection(fieldName) {
-  // Common patterns for field names that reference other collections
-  const patterns = {
-    userId: 'users',
-    user_id: 'users',
-    authorId: 'users',
-    author_id: 'users',
-    movieId: 'movies',
-    movie_id: 'movies',
-    commentId: 'comments',
-    comment_id: 'comments',
-    postId: 'posts',
-    post_id: 'posts',
-    categoryId: 'categories',
-    category_id: 'categories',
-    productId: 'products',
-    product_id: 'products'
-  };
+  // Common patterns for referenced collections
+  const patterns = [
+    /^(\w+)_id$/i,           // user_id, post_id, etc.
+    /^(\w+)Id$/i,           // userId, postId, etc.
+    /^(\w+)Ref$/i,          // userRef, postRef, etc.
+    /^(\w+)Reference$/i,    // userReference, postReference, etc.
+    /^(\w+)$/i              // user, post, etc.
+  ];
 
-  // Check if the field name matches any of our patterns
-  for (const [pattern, collection] of Object.entries(patterns)) {
-    if (fieldName.toLowerCase().includes(pattern.toLowerCase())) {
-      return collection;
+  for (const pattern of patterns) {
+    const match = fieldName.match(pattern);
+    if (match) {
+      const collectionName = match[1].toLowerCase();
+      // Add common plural forms
+      return collectionName.endsWith('s') ? collectionName : `${collectionName}s`;
     }
   }
 

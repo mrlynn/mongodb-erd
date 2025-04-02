@@ -12,48 +12,49 @@ const __dirname = path.dirname(__filename);
 export async function generateERD(options) {
   const {
     uri,
-    database: databaseName,
+    database,
     outputPath,
     format = 'svg',
     theme = 'default',
-    includeCollections,
-    excludeCollections
+    collections = [],
+    excludeCollections = []
   } = options;
 
-  if (!outputPath) {
-    throw new Error('Output path is required');
+  if (!uri) {
+    throw new Error('MongoDB URI is required');
   }
 
-  let client = null;
+  if (!database) {
+    throw new Error('Database name is required');
+  }
+
+  // Generate default output path if not provided
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const extension = format === 'ascii' ? 'txt' : 
+                   format === 'mermaid' ? 'mmd' : 
+                   format;
+  const defaultOutputPath = `erd_${timestamp}.${extension}`;
+  const finalOutputPath = outputPath || defaultOutputPath;
+
   try {
     // Connect to MongoDB
-    client = await MongoClient.connect(uri);
-    console.log('Connected to MongoDB');
+    const client = await MongoClient.connect(uri);
+    const db = client.db(database);
 
-    // Get database
-    const database = client.db(databaseName);
+    // Introspect the database
+    const collectionMetadata = await introspectDatabase(db, collections, excludeCollections);
 
-    // Introspect database
-    const collectionMetadata = await introspectDatabase(database, {
-      includeCollections,
-      excludeCollections
-    });
-
-    // Generate diagram with the correct output path
-    await generateMermaidDiagram(collectionMetadata, {
-      outputPath,
+    // Generate the diagram
+    const outputPath = await generateMermaidDiagram(collectionMetadata, {
+      outputPath: finalOutputPath,
       format,
       theme
     });
 
+    await client.close();
     return outputPath;
   } catch (error) {
-    console.error('Error:', error.message);
-    throw error;
-  } finally {
-    if (client) {
-      await client.close();
-    }
+    throw new Error(`Error generating ERD: ${error.message}`);
   }
 }
 

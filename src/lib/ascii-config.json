@@ -1,0 +1,21 @@
+{
+  "theme": "default",
+  "themeVariables": {
+    "fontFamily": "monospace",
+    "fontSize": "12px",
+    "primaryColor": "#000000",
+    "primaryTextColor": "#000000",
+    "primaryBorderColor": "#000000",
+    "lineColor": "#000000",
+    "secondaryColor": "#ffffff",
+    "tertiaryColor": "#ffffff"
+  },
+  "flowchart": {
+    "curve": "basis",
+    "padding": 5,
+    "nodeSpacing": 20,
+    "rankSpacing": 20,
+    "htmlLabels": false,
+    "defaultRenderer": "elk"
+  }
+} 

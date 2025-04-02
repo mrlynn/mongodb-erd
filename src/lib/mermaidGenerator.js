@@ -2,6 +2,12 @@ import puppeteer from 'puppeteer';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { execSync } from 'child_process';
+import { fileURLToPath } from 'url';
+
+// Get the directory path using import.meta.url
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export async function generateMermaidDiagram(collectionMetadata, options = {}) {
   const {
@@ -17,11 +23,25 @@ export async function generateMermaidDiagram(collectionMetadata, options = {}) {
   // Create a temporary HTML file with the Mermaid diagram
   const tempDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), 'mermaid-'));
   const htmlPath = path.join(tempDir, 'diagram.html');
+  const mmdcPath = path.join(tempDir, 'diagram.mmd');
 
   // Generate Mermaid syntax
   const mermaidSyntax = generateMermaidSyntax(collectionMetadata, theme);
 
-  // Create HTML with Mermaid
+  // For Mermaid syntax output
+  if (format.toLowerCase() === 'mermaid') {
+    await fs.promises.writeFile(outputPath, mermaidSyntax);
+    return outputPath;
+  }
+
+  // For ASCII output, we'll use a custom ASCII renderer
+  if (format.toLowerCase() === 'ascii') {
+    const asciiDiagram = generateAsciiDiagram(collectionMetadata);
+    await fs.promises.writeFile(outputPath, asciiDiagram);
+    return outputPath;
+  }
+
+  // For other formats, continue with the existing HTML-based approach
   const html = `
     <!DOCTYPE html>
     <html>
@@ -129,36 +149,119 @@ export async function generateMermaidDiagram(collectionMetadata, options = {}) {
   }
 }
 
-function generateMermaidSyntax(collectionMetadata, theme) {
-  const entities = new Set();
-  const relationships = new Set();
-  let syntax = 'erDiagram\n';
+function generateAsciiDiagram(collectionMetadata) {
+  let output = 'MongoDB ERD Diagram\n';
+  output += '==================\n\n';
 
-  // Add entities
-  for (const collection of collectionMetadata) {
-    const entityName = collection.name;
-    entities.add(entityName);
+  // Calculate the maximum width needed for collection boxes
+  const maxCollectionWidth = Math.max(
+    ...collectionMetadata.map(c => c.name.length + 2)
+  );
 
-    syntax += `    ${entityName} {\n`;
-    for (const field of collection.fields) {
-      const fieldType = formatFieldType(field);
-      syntax += `        ${fieldType} ${field.name}\n`;
+  // Draw collections and their relationships
+  collectionMetadata.forEach((collection, index) => {
+    // Draw collection box
+    const boxWidth = maxCollectionWidth + 4;
+    const boxHeight = 3;
+    const boxTop = index * (boxHeight + 2);
+    
+    // Draw top of box
+    output += ' ' + '─'.repeat(boxWidth) + '\n';
+    // Draw collection name
+    output += '│ ' + collection.name.padEnd(boxWidth - 2) + ' │\n';
+    // Draw bottom of box
+    output += ' ' + '─'.repeat(boxWidth) + '\n';
+
+    // Draw fields
+    collection.fields.forEach((field, fieldIndex) => {
+      const fieldLine = `  ├─ ${field.name}: ${field.type}`;
+      output += fieldLine + '\n';
+    });
+
+    // Draw relationships
+    if (collection.relationships.length > 0) {
+      output += '\n  Relationships:\n';
+      collection.relationships.forEach(rel => {
+        const targetIndex = collectionMetadata.findIndex(c => c.name === rel.to);
+        if (targetIndex !== -1) {
+          const targetBoxTop = targetIndex * (boxHeight + 2);
+          const currentBoxTop = index * (boxHeight + 2);
+          
+          // Draw connection line
+          if (targetIndex > index) {
+            // Draw downward connection
+            output += '  │\n';
+            output += '  │\n';
+            output += '  ▼\n';
+          } else if (targetIndex < index) {
+            // Draw upward connection
+            output += '  ▲\n';
+            output += '  │\n';
+            output += '  │\n';
+          }
+          
+          // Draw relationship label
+          output += `  ${rel.field} → ${rel.to}\n`;
+        }
+      });
     }
-    syntax += '    }\n\n';
+
+    output += '\n';
+  });
+
+  // Add legend
+  output += '\nLegend:\n';
+  output += '──────\n';
+  output += '  │   Collection\n';
+  output += '  ├─  Field\n';
+  output += '  →   Relationship\n';
+  output += '  ▲   References above\n';
+  output += '  ▼   References below\n';
+
+  return output;
+}
+
+function generateMermaidSyntax(collectionMetadata, theme = 'default') {
+  // Sanitize field names and types for Mermaid syntax
+  function sanitizeFieldName(name) {
+    return name.replace(/[^a-zA-Z0-9_]/g, '_');
   }
+
+  function sanitizeFieldType(type) {
+    return type.replace(/[^a-zA-Z0-9_]/g, '_');
+  }
+
+  let syntax = 'erDiagram\n';
+  
+  // Add theme configuration
+  if (theme === 'dark') {
+    syntax += `%%{init: {'theme': 'dark'}}%%\n`;
+  }
+
+  // Add collections
+  collectionMetadata.forEach(collection => {
+    const collectionName = sanitizeFieldName(collection.name);
+    syntax += `    ${collectionName} {\n`;
+    
+    // Add fields
+    collection.fields.forEach(field => {
+      const fieldName = sanitizeFieldName(field.name);
+      const fieldType = sanitizeFieldType(field.type);
+      syntax += `        ${fieldType} ${fieldName}\n`;
+    });
+    
+    syntax += '    }\n\n';
+  });
 
   // Add relationships
-  for (const collection of collectionMetadata) {
-    if (collection.relationships && Array.isArray(collection.relationships)) {
-      for (const relationship of collection.relationships) {
-        const relKey = `${relationship.from}-${relationship.to}`;
-        if (!relationships.has(relKey)) {
-          relationships.add(relKey);
-          syntax += `    ${relationship.from} ||--o{ ${relationship.to} : "${relationship.field}"\n`;
-        }
-      }
-    }
-  }
+  collectionMetadata.forEach(collection => {
+    collection.relationships.forEach(rel => {
+      const fromCollection = sanitizeFieldName(rel.from);
+      const toCollection = sanitizeFieldName(rel.to);
+      const fieldName = sanitizeFieldName(rel.field);
+      syntax += `    ${fromCollection} ||--o{ ${toCollection} : "${fieldName}"\n`;
+    });
+  });
 
   return syntax;
 }
