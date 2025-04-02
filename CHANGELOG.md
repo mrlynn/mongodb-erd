@@ -1,3 +1,24 @@
+
+## [2.5.0] - 2025-04-02
+
+### Added
+- 
+
+### Changed
+- 
+
+### Deprecated
+- 
+
+### Removed
+- 
+
+### Fixed
+- 
+
+### Security
+- 
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
