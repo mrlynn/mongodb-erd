@@ -39,20 +39,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved error handling and logging
 - Enhanced documentation
 
-### Deprecated
-- 
-
-### Removed
-- 
-
 ### Fixed
 - Fixed output path handling
 - Fixed array field handling in document structure analysis
 - Fixed test suite configuration
 
 ### Security
-- 
-
+- None
 
 ## [2.2.0] - 2025-04-02
 
